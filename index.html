@@ -4,29 +4,84 @@
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#000000">
   <meta charset="UTF-8">
-  <title>QR Code</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador de QR Code</title>
+
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 5px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      max-width: 400px;
+      margin-top: 20px;
+    }
+  </style>
 </head>
-<body style="text-align:center; font-family:Arial;">
 
-  <h2>Gerador de QR Code</h2>
+<body>
 
-  <input type="text" id="texto" placeholder="Digite algo" style="width:80%; padding:10px;">
-  <br><br>
+  <div class="container">
+    <h2>Gerador de QR Code</h2>
 
-  <button onclick="gerarQR()">Gerar QR</button>
-  <button onclick="baixarQR()">Baixar QR</button>
+    <input type="text" id="texto" placeholder="Digite um link ou texto">
 
-  <br><br>
+    <button onclick="gerarQR()">Gerar QR Code</button>
+    <button onclick="baixarQR()">Baixar QR Code</button>
 
-  <canvas id="qrcode" style="width:100%; max-width:400px;"></canvas>
+    <canvas id="qrcode"></canvas>
+  </div>
 
   <script>
     function gerarQR() {
       let texto = document.getElementById("texto").value;
 
+      let tamanho = Math.min(window.innerWidth * 0.8, 500);
+
       QRCode.toCanvas(document.getElementById("qrcode"), texto, {
-        width: 500
+        width: tamanho
       });
     }
 
