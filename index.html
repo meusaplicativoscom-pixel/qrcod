@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#000000">
+  <meta charset="UTF-8">
+  <title>QR Code</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+</head>
+<body style="text-align:center; font-family:Arial;">
+
+  <h2>Gerador de QR Code</h2>
+
+  <input type="text" id="texto" placeholder="Digite algo" style="width:80%; padding:10px;">
+  <br><br>
+
+  <button onclick="gerarQR()">Gerar QR</button>
+  <button onclick="baixarQR()">Baixar QR</button>
+
+  <br><br>
+
+  <canvas id="qrcode" style="width:100%; max-width:400px;"></canvas>
+
+  <script>
+    function gerarQR() {
+      let texto = document.getElementById("texto").value;
+
+      QRCode.toCanvas(document.getElementById("qrcode"), texto, {
+        width: 500
+      });
+    }
+
+    function baixarQR() {
+      let canvas = document.getElementById("qrcode");
+
+      let link = document.createElement("a");
+      link.download = "qrcode.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
+  </script>
+<button id="btnInstall" style="display:none;">📲 Instalar App</button>
+<script>
+let deferredPrompt;
+const btnInstall = document.getElementById("btnInstall");
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  btnInstall.style.display = "block"; // mostra o botão
+});
+
+btnInstall.addEventListener("click", async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log("Resultado da instalação:", outcome);
+    deferredPrompt = null;
+    btnInstall.style.display = "none";
+  }
+});
+
+// Registrar o Service Worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
+</script>
+</body>
+</html>
