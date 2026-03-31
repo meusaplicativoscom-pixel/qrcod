@@ -3,105 +3,157 @@
 <head>
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#000000">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gerador de QR Code</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #f4f4f4;
-      margin: 0;
-      padding: 20px;
-    }
+<title>Gerador de QR Code</title>
 
-    .container {
-      max-width: 500px;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 
-    input {
-      width: 100%;
-      padding: 12px;
-      font-size: 16px;
-      margin-bottom: 10px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+  }
 
-    button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 5px;
-      font-size: 16px;
-      border: none;
-      border-radius: 5px;
-      background: #007bff;
-      color: white;
-      cursor: pointer;
-    }
+  .container {
+    max-width: 500px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
 
-    button:hover {
-      background: #0056b3;
-    }
+  input {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
 
-    canvas {
-      width: 100%;
-      height: auto;
-      max-width: 400px;
-      margin-top: 20px;
-    }
-  </style>
+  button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 5px;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    background: #007bff;
+    color: white;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: #0056b3;
+  }
+
+  canvas {
+    width: 100%;
+    height: auto;
+    max-width: 400px;
+    margin-top: 20px;
+  }
+</style>
 </head>
 
 <body>
 
-  <div class="container">
-    <h2>Gerador de QR Code</h2>
+<div class="container">
+  <h2>Gerador de QR Code</h2>
 
-    <input type="text" id="texto" placeholder="Digite um link ou texto">
+  <input type="text" id="texto" placeholder="Digite um link ou texto">
 
-    <button onclick="gerarQR()">Gerar QR Code</button>
-    <button onclick="baixarQR()">Baixar QR Code</button>
+  <!-- NOVO: Nome opcional -->
+  <input type="text" id="nomeQR" placeholder="Nome do QR (opcional)">
 
-    <canvas id="qrcode"></canvas>
-  </div>
+  <!-- NOVO: Upload de imagem -->
+  <input type="file" id="logoInput" accept="image/*">
 
-  <script>
-    function gerarQR() {
-      let texto = document.getElementById("texto").value;
+  <button onclick="gerarQR()">Gerar QR Code</button>
+  <button onclick="baixarQR()">Baixar QR Code</button>
 
-      let tamanho = Math.min(window.innerWidth * 0.8, 500);
+  <canvas id="qrcode"></canvas>
+</div>
 
-      QRCode.toCanvas(document.getElementById("qrcode"), texto, {
-        width: tamanho
-      });
+<script>
+function gerarQR() {
+  let texto = document.getElementById("texto").value;
+  let nome = document.getElementById("nomeQR").value;
+  let canvas = document.getElementById("qrcode");
+  let ctx = canvas.getContext("2d");
+
+  let tamanho = Math.min(window.innerWidth * 0.8, 500);
+
+  QRCode.toCanvas(canvas, texto, { width: tamanho }, function (error) {
+    if (error) console.error(error);
+
+    // 📝 Nome opcional
+    if (nome) {
+      ctx.font = "20px Arial";
+      ctx.fillStyle = "black";
+      ctx.textAlign = "center";
+      ctx.fillText(nome, canvas.width / 2, canvas.height - 10);
     }
 
-    function baixarQR() {
-      let canvas = document.getElementById("qrcode");
+    // 🖼️ Logo opcional com limite fixo
+    let fileInput = document.getElementById("logoInput");
 
-      let link = document.createElement("a");
-      link.download = "qrcode.png";
-      link.href = canvas.toDataURL("image/png");
-      link.click();
+    if (fileInput.files && fileInput.files[0]) {
+      let img = new Image();
+      img.src = URL.createObjectURL(fileInput.files[0]);
+
+      img.onload = function () {
+
+        let maxSize = canvas.width * 0.2; // 🔒 20% FIXO
+
+        let imgWidth = img.width;
+        let imgHeight = img.height;
+
+        let ratio = Math.min(maxSize / imgWidth, maxSize / imgHeight);
+
+        let newWidth = imgWidth * ratio;
+        let newHeight = imgHeight * ratio;
+
+        let x = (canvas.width - newWidth) / 2;
+        let y = (canvas.height - newHeight) / 2;
+
+        // fundo branco para não prejudicar leitura
+        ctx.fillStyle = "white";
+        ctx.fillRect(x - 5, y - 5, newWidth + 10, newHeight + 10);
+
+        ctx.drawImage(img, x, y, newWidth, newHeight);
+      };
     }
-  </script>
+  });
+}
+
+function baixarQR() {
+  let canvas = document.getElementById("qrcode");
+
+  let link = document.createElement("a");
+  link.download = "qrcode.png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
+</script>
+
 <button id="btnInstall" style="display:none;">📲 Instalar App</button>
+
 <script>
 let deferredPrompt;
 const btnInstall = document.getElementById("btnInstall");
+
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  btnInstall.style.display = "block"; // mostra o botão
+  btnInstall.style.display = "block";
 });
 
 btnInstall.addEventListener("click", async () => {
@@ -114,10 +166,10 @@ btnInstall.addEventListener("click", async () => {
   }
 });
 
-// Registrar o Service Worker
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");
 }
 </script>
+
 </body>
 </html>
