@@ -3,157 +3,332 @@
 <head>
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#000000">
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Gerador de QR Code</title>
-
-<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-
+<title>🧠 Memory Pro</title>
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    background: #f4f4f4;
-    margin: 0;
-    padding: 20px;
-  }
+:root {
+  --bg: #0f0f0f;
+  --card: #1c1c1c;
+  --accent: #6c5ce7;
+  --text: #fff;
+}
 
-  .container {
-    max-width: 500px;
-    margin: auto;
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-  }
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+}
 
-  input {
-    width: 100%;
-    padding: 12px;
-    font-size: 16px;
-    margin-bottom: 10px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-  }
+.container { max-width: 900px; margin:auto; padding:15px; }
+h1 { margin: 10px 0; }
 
-  button {
-    width: 100%;
-    padding: 12px;
-    margin-top: 5px;
-    font-size: 16px;
-    border: none;
-    border-radius: 5px;
-    background: #007bff;
-    color: white;
-    cursor: pointer;
-  }
+button {
+  background: linear-gradient(145deg, #7d6bff, #5a4de0);
+  border: none;
+  padding: 10px 15px;
+  color: white;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  box-shadow: 0 4px 0 #4b3fc1, 0 6px 10px rgba(0,0,0,0.4);
+  transition: all 0.15s ease;
+}
+button:hover { transform: translateY(-2px); }
+button:active { transform: translateY(4px); box-shadow: 0 1px 0 #4b3fc1; }
 
-  button:hover {
-    background: #0056b3;
-  }
+.game {
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
 
-  canvas {
-    width: 100%;
-    height: auto;
-    max-width: 400px;
-    margin-top: 20px;
-  }
+.card {
+  width: 100%;
+  aspect-ratio: 1/1;
+  max-width: 70px;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.5s;
+  cursor: pointer;
+}
+
+.card.flipped { transform: rotateY(180deg); }
+
+.card .front, .card .back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backface-visibility: hidden;
+  font-size: 28px;
+}
+
+.front { background: #fff; color: #000; transform: rotateY(180deg);}
+.back { background: var(--card); }
+
+.card.match { animation: brilho 0.5s; box-shadow:0 0 15px #00ffcc; }
+@keyframes brilho {50% { transform: scale(1.1); }}
+@media(max-width:600px){ .card{max-width:60px;} }
 </style>
 </head>
-
 <body>
-
 <div class="container">
-  <h2>Gerador de QR Code</h2>
+<h1>🧠 Memory Pro</h1>
 
-  <input type="text" id="texto" placeholder="Digite um link ou texto">
+<!-- LOGIN -->
+<div id="loginDiv">
+  <input type="text" id="playerName" placeholder="Nome">
+  <input type="password" id="playerPass" placeholder="Senha"><br><br>
+  <button onclick="login()">Entrar</button>
+  <button onclick="entrarVisitante()">Visitante</button>
+</div>
 
-  <!-- NOVO: Nome opcional -->
-  <input type="text" id="nomeQR" placeholder="Nome do QR (opcional)">
-
-  <!-- NOVO: Upload de imagem -->
-  <input type="file" id="logoInput" accept="image/*">
-
-  <button onclick="gerarQR()">Gerar QR Code</button>
-  <button onclick="baixarQR()">Baixar QR Code</button>
-
-  <canvas id="qrcode"></canvas>
+<!-- JOGO -->
+<div id="gameDiv" style="display:none;">
+  <div class="controls">
+    <button onclick="salvarESair()">💾 Salvar e Sair</button>
+    <button onclick="toggleDificuldade()">🔥 Difícil</button>
+    <button onclick="startGame()">Reiniciar</button>
+    <br><br>
+    ⏱️ <span id="timer">0</span> | 🎯 <span id="nivel">1</span> | 🧩 Fase <span id="fase">1</span> | ⏳ Chances: <span id="chances">3</span>
+  </div>
+  <div id="game" class="game"></div>
+</div>
 </div>
 
 <script>
-function gerarQR() {
-  let texto = document.getElementById("texto").value;
-  let nome = document.getElementById("nomeQR").value;
-  let canvas = document.getElementById("qrcode");
-  let ctx = canvas.getContext("2d");
+// ===== TEMAS =====
+const temas = {
+  frutas:["🍎","🍌","🍇","🍓","🍍","🥝","🍉","🍒","🥥","🍑"],
+  animais:["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯"],
+  comida:["🍕","🍔","🍟","🌭","🍿","🍩","🍪","🎂","🍫","🍦"],
+  emocoes:["😀","😃","😄","😁","😆","😂","😍","😎","🤯","🥳"],
+  esportes:["⚽","🏀","🏈","🎾","🏐","🥊","🏊‍♂️","🚴‍♂️","🏋️‍♀️","🏄‍♂️"]
+};
 
-  let tamanho = Math.min(window.innerWidth * 0.8, 500);
+// ===== ESTADO =====
+let nivelAtual = 1;
+let faseAtual = 0;
+let errosTempo = 0;
+let firstCard=null, secondCard=null, lock=false;
+let totalPairs=0, foundPairs=0;
+let tempo=0, intervalo;
+let modoDificil=false;
+const ordemFases = ["frutas","esportes","emocoes","comida","animais","aleatorio"];
+const tempoPorFase = 55;
 
-  QRCode.toCanvas(canvas, texto, { width: tamanho }, function (error) {
-    if (error) console.error(error);
+// ===== LOGIN =====
+function login(){ 
+  document.getElementById("loginDiv").style.display="none"; 
+  document.getElementById("gameDiv").style.display="block"; 
+  startGame();
+}
+function entrarVisitante(){ login(); }
+function toggleDificuldade(){ modoDificil=!modoDificil; alert(modoDificil?"🔥 Difícil ON":"🙂 Normal"); }
 
-    // 📝 Nome opcional
-    if (nome) {
-      ctx.font = "20px Arial";
-      ctx.fillStyle = "black";
-      ctx.textAlign = "center";
-      ctx.fillText(nome, canvas.width / 2, canvas.height - 10);
+// ===== SALVAR =====
+function salvarESair(){
+  if(errosTempo>=3){
+    alert("Não pode salvar, você perdeu todas as chances de tempo! Reiniciando...");
+    reiniciarJogo();
+    return;
+  }
+  const dados={nivel:nivelAtual,fase:faseAtual,tempo:tempo,errosTempo:errosTempo};
+  localStorage.setItem("memoryProSave",JSON.stringify(dados));
+  alert("💾 Progresso salvo!");
+  document.getElementById("gameDiv").style.display="none";
+  document.getElementById("loginDiv").style.display="block";
+}
+
+// ===== REINICIAR JOGO =====
+function reiniciarJogo(){
+  errosTempo=0; faseAtual=0; nivelAtual=1;
+  document.getElementById("chances").innerText=3;
+  startGame();
+}
+
+// ===== INICIAR TEMPO =====
+function iniciarTempo(){
+  clearInterval(intervalo);
+  intervalo = setInterval(() => {
+    if(tempo>0){
+      tempo--;
+      document.getElementById("timer").innerText = tempo;
+    } else {
+      clearInterval(intervalo);
+      errosTempo++;
+      document.getElementById("chances").innerText = 3-errosTempo;
+      if(errosTempo>=3){
+        alert("⏰ Você não completou a fase no tempo 3 vezes! Jogo reiniciado.");
+        reiniciarJogo();
+      } else {
+        alert(`⏰ Tempo esgotado! Você tem mais ${3-errosTempo} chance(s)`);
+        startGame();
+      }
     }
+  },1000);
+}
 
-    // 🖼️ Logo opcional com limite fixo
-    let fileInput = document.getElementById("logoInput");
+// ===== INICIAR JOGO =====
+function startGame(){
+  if(nivelAtual===2){ startNivel2(); return; } // Nível 2 matemático
 
-    if (fileInput.files && fileInput.files[0]) {
-      let img = new Image();
-      img.src = URL.createObjectURL(fileInput.files[0]);
+  // Seleção de tema
+  let temaAtual = faseAtual<ordemFases.length-1 ? ordemFases[faseAtual] : null;
+  let base = temaAtual==="aleatorio" || !temaAtual ? shuffle([...new Set(Object.values(temas).flat())]) : temas[temaAtual];
 
-      img.onload = function () {
+  let size=4;
+  totalPairs=Math.min(Math.floor((size*size)/2),base.length);
+  let selected=shuffle([...base]).slice(0,totalPairs);
+  let cards=shuffle([...selected,...selected]);
 
-        let maxSize = canvas.width * 0.2; // 🔒 20% FIXO
+  foundPairs=0; firstCard=null; secondCard=null; lock=false;
+  tempo=tempoPorFase; if(modoDificil) tempo=Math.floor(tempo*0.6);
+  document.getElementById("timer").innerText=tempo;
+  document.getElementById("nivel").innerText=nivelAtual;
+  document.getElementById("fase").innerText=faseAtual+1;
+  document.getElementById("chances").innerText=3-errosTempo;
 
-        let imgWidth = img.width;
-        let imgHeight = img.height;
+  const game = document.getElementById("game");
+  game.innerHTML="";
+  game.style.gridTemplateColumns=`repeat(${size},1fr)`;
 
-        let ratio = Math.min(maxSize / imgWidth, maxSize / imgHeight);
-
-        let newWidth = imgWidth * ratio;
-        let newHeight = imgHeight * ratio;
-
-        let x = (canvas.width - newWidth) / 2;
-        let y = (canvas.height - newHeight) / 2;
-
-        // fundo branco para não prejudicar leitura
-        ctx.fillStyle = "white";
-        ctx.fillRect(x - 5, y - 5, newWidth + 10, newHeight + 10);
-
-        ctx.drawImage(img, x, y, newWidth, newHeight);
-      };
-    }
+  cards.forEach(symbol=>{
+    const card=document.createElement("div");
+    card.className="card";
+    card.innerHTML=`<div class="front">${symbol}</div><div class="back"></div>`;
+    card.onclick=()=>flipCard(card);
+    game.appendChild(card);
   });
+
+  iniciarTempo();
 }
 
-function baixarQR() {
-  let canvas = document.getElementById("qrcode");
+// ===== VIRAR CARTA =====
+function flipCard(card){
+  if(lock||card.classList.contains("flipped")) return;
+  card.classList.add("flipped");
 
-  let link = document.createElement("a");
-  link.download = "qrcode.png";
-  link.href = canvas.toDataURL("image/png");
-  link.click();
+  if(!firstCard){ firstCard=card; return; }
+  secondCard=card;
+
+  let s1=firstCard.innerText, s2=secondCard.innerText;
+  if(s1===s2){
+    firstCard.classList.add("match");
+    secondCard.classList.add("match");
+    foundPairs++; firstCard=null; secondCard=null;
+    if(foundPairs===totalPairs){
+      clearInterval(intervalo);
+      faseAtual++;
+      if(faseAtual>=6){ alert("🎉 Você completou todas as fases!"); faseAtual=0; nivelAtual=1; }
+      startGame();
+    }
+  } else {
+    lock=true;
+    setTimeout(()=>{
+      firstCard.classList.remove("flipped");
+      secondCard.classList.remove("flipped");
+      firstCard=null; secondCard=null; lock=false;
+    },800);
+  }
 }
+
+// ===== EMBARALHAR =====
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    let j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+// ===== NÍVEL 2 MATEMÁTICAS =====
+let nivel2={level:1,maxLevel:5,time:5};
+function startNivel2(){
+  const game=document.getElementById("game");
+  game.innerHTML="";
+  document.getElementById("nivel").innerText=nivelAtual;
+  document.getElementById("fase").innerText=nivel2.level;
+
+  const a=Math.floor(Math.random()*200);
+  const b=Math.floor(Math.random()*200);
+  const certo=a+b;
+  let err1=certo+Math.floor(Math.random()*10+1);
+  let err2=certo-Math.floor(Math.random()*10+1);
+  const opcoes=shuffle([certo,err1,err2]);
+
+  const pergunta=document.createElement("div");
+  pergunta.textContent=`Quanto é ${a} + ${b}?`;
+  pergunta.style.marginBottom="15px";
+  pergunta.style.fontSize="24px";
+  game.appendChild(pergunta);
+
+  opcoes.forEach(o=>{
+    const btn=document.createElement("button");
+    btn.innerText=o;
+    btn.style.margin="5px";
+    btn.onclick=()=>{
+      if(o===certo){
+        nivel2.level++;
+        if(nivel2.level>nivel2.maxLevel){
+          alert("🎉 Você completou o nível 2!");
+          nivel2.level=1; nivelAtual=1; faseAtual=0;
+          startGame();
+        } else startNivel2();
+      } else {
+        alert("❌ Errou! Tente de novo");
+        startNivel2();
+      }
+    }
+    game.appendChild(btn);
+  });
+
+  // Contador regressivo
+  let timeLeft=nivel2.time;
+  const timer=document.getElementById("timer");
+  timer.innerText=timeLeft;
+  clearInterval(intervalo);
+  intervalo=setInterval(()=>{
+    timeLeft--;
+    timer.innerText=timeLeft;
+    if(timeLeft<=0){
+      clearInterval(intervalo);
+      alert("⏰ Tempo esgotado!");
+      nivel2.level=1; faseAtual=0; nivelAtual=1;
+      startGame();
+    }
+  },1000);
+}
+
+// ===== AUTOLOAD =====
+window.onload=()=>{
+  let save=localStorage.getItem("memoryProSave");
+  if(save){
+    let dados=JSON.parse(save);
+    nivelAtual=dados.nivel; faseAtual=dados.fase; errosTempo=dados.errosTempo||0;
+    document.getElementById("loginDiv").style.display="none";
+    document.getElementById("gameDiv").style.display="block";
+    startGame();
+  }
+};
 </script>
-
 <button id="btnInstall" style="display:none;">📲 Instalar App</button>
-
 <script>
 let deferredPrompt;
 const btnInstall = document.getElementById("btnInstall");
-
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  btnInstall.style.display = "block";
+  btnInstall.style.display = "block"; // mostra o botão
 });
 
 btnInstall.addEventListener("click", async () => {
@@ -166,10 +341,10 @@ btnInstall.addEventListener("click", async () => {
   }
 });
 
+// Registrar o Service Worker
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");
 }
 </script>
-
 </body>
 </html>
